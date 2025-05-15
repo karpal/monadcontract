@@ -1,9 +1,11 @@
-require('dotenv').config();
-const fs = require('fs');
-const solc = require('solc');
-const { ethers } = require('ethers');
-const readline = require('readline');
-const chalk = require('chalk');
+import dotenv from 'dotenv';
+import fs from 'fs';
+import solc from 'solc';
+import { ethers } from 'ethers';
+import readline from 'readline';
+import chalk from 'chalk';
+
+dotenv.config();
 
 const DELAY_MS = 5000; // Delay antar deploy (ms)
 
@@ -63,7 +65,6 @@ async function main() {
     for (let i = 0; i < totalContracts; i++) {
         console.log(chalk.yellow(`🚧 Deploying contract #${i + 1}...`));
 
-        // Estimasi gas
         const estimatedGas = await provider.estimateGas({
             from: wallet.address,
             data: "0x" + bytecode,
@@ -72,7 +73,6 @@ async function main() {
         const gasPriceHex = await provider.send("eth_gasPrice", []);
         const gasPrice = BigInt(gasPriceHex);
         const estimatedCost = gasPrice * BigInt(estimatedGas);
-
         const ethCost = ethers.formatEther(estimatedCost);
 
         console.log(`   ⛽ Estimasi gas: ${chalk.magenta(estimatedGas)} @ ${chalk.magenta(ethers.formatUnits(gasPrice, "gwei"))} gwei`);
