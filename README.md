@@ -11,7 +11,7 @@ npm install ethers solc dotenv readline chalk figlet
 ```
 masukkan PK
 ```bash
-private_keys.txt
+nano private_keys.txt
 ```
 CTRL+X y enter
 
