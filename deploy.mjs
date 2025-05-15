@@ -48,7 +48,7 @@ function delay(ms) {
 }
 
 async function main() {
-    const userInput = await askUser(chalk.blueBright("🔢 Berapa jumlah kontrak yang ingin kamu deploy? "));
+    const userInput = await askUser(chalk.blueBright("🔢 Berapa jumlah kontrak yang ingin kamu buat? "));
     const totalContracts = parseInt(userInput);
 
     if (isNaN(totalContracts) || totalContracts <= 0) {
@@ -60,7 +60,7 @@ async function main() {
     const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
     const factory = new ethers.ContractFactory(abi, bytecode, wallet);
 
-    console.log(chalk.cyan(`\n🚀 Deploying ${totalContracts} contract(s) one by one...\n`));
+    console.log(chalk.cyan(`\n🚀 Deploying ${totalContracts} contract(s) satu per satu...\n`));
 
     for (let i = 0; i < totalContracts; i++) {
         console.log(chalk.yellow(`🚧 Deploying contract #${i + 1}...`));
@@ -76,7 +76,7 @@ async function main() {
         const ethCost = ethers.formatEther(estimatedCost);
 
         console.log(`   ⛽ Estimasi gas: ${chalk.magenta(estimatedGas)} @ ${chalk.magenta(ethers.formatUnits(gasPrice, "gwei"))} gwei`);
-        console.log(`   💰 Estimasi biaya: ~${chalk.green(ethCost)} ETH`);
+        console.log(`   💰 Estimasi biaya: ~${chalk.green(ethCost)} MON`);
 
         const contract = await factory.deploy();
         await contract.waitForDeployment();
