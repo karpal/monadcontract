@@ -5,17 +5,18 @@ Jalankan perintah berikut untuk memulai proyek Node.js dan menginstal dependency
 git clone https://github.com/karpal/monadcontract.git
 cd monadcontract
 ```
-masukkan PK
-```bash
-nano .env
-```
-CTRL+X y enter
 ```bash
 npm init -y
 ```
 ```bash
 npm install ethers solc dotenv
 ```
+masukkan PK
+```bash
+nano .env
+```
+CTRL+X y enter
+
 Jalankan
 
 ```bash
