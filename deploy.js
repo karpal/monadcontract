@@ -3,6 +3,7 @@ const fs = require('fs');
 const solc = require('solc');
 const { ethers } = require('ethers');
 const readline = require('readline');
+const chalk = require('chalk');
 
 const DELAY_MS = 5000; // Delay antar deploy (ms)
 
@@ -45,11 +46,11 @@ function delay(ms) {
 }
 
 async function main() {
-    const userInput = await askUser("🔢 Berapa jumlah kontrak yang ingin kamu deploy? ");
+    const userInput = await askUser(chalk.blueBright("🔢 Berapa jumlah kontrak yang ingin kamu deploy? "));
     const totalContracts = parseInt(userInput);
 
     if (isNaN(totalContracts) || totalContracts <= 0) {
-        console.error("❌ Input tidak valid. Masukkan angka lebih dari 0.");
+        console.error(chalk.red("❌ Input tidak valid. Masukkan angka lebih dari 0."));
         return;
     }
 
@@ -57,10 +58,10 @@ async function main() {
     const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
     const factory = new ethers.ContractFactory(abi, bytecode, wallet);
 
-    console.log(`\n🚀 Deploying ${totalContracts} contract(s) one by one...\n`);
+    console.log(chalk.cyan(`\n🚀 Deploying ${totalContracts} contract(s) one by one...\n`));
 
     for (let i = 0; i < totalContracts; i++) {
-        console.log(`🚧 Deploying contract #${i + 1}...`);
+        console.log(chalk.yellow(`🚧 Deploying contract #${i + 1}...`));
 
         // Estimasi gas
         const estimatedGas = await provider.estimateGas({
@@ -74,23 +75,23 @@ async function main() {
 
         const ethCost = ethers.formatEther(estimatedCost);
 
-        console.log(`   ⛽ Estimasi gas: ${estimatedGas} @ ${ethers.formatUnits(gasPrice, "gwei")} gwei`);
-        console.log(`   💰 Estimasi biaya: ~${ethCost} ETH`);
+        console.log(`   ⛽ Estimasi gas: ${chalk.magenta(estimatedGas)} @ ${chalk.magenta(ethers.formatUnits(gasPrice, "gwei"))} gwei`);
+        console.log(`   💰 Estimasi biaya: ~${chalk.green(ethCost)} ETH`);
 
         const contract = await factory.deploy();
         await contract.waitForDeployment();
 
-        console.log(`✅ Contract #${i + 1} deployed at: ${contract.target}\n`);
+        console.log(chalk.green(`✅ Contract #${i + 1} deployed at: ${contract.target}\n`));
 
         if (i < totalContracts - 1) {
-            console.log(`⏳ Menunggu ${DELAY_MS / 1000} detik sebelum deploy berikutnya...\n`);
+            console.log(chalk.gray(`⏳ Menunggu ${DELAY_MS / 1000} detik sebelum deploy berikutnya...\n`));
             await delay(DELAY_MS);
         }
     }
 
-    console.log("🎉 Semua kontrak berhasil dideploy!");
+    console.log(chalk.bgGreen.black("🎉 Semua kontrak berhasil dideploy!"));
 }
 
 main().catch((err) => {
-    console.error("❌ Deployment gagal:", err);
+    console.error(chalk.bgRed.white("❌ Deployment gagal:"), chalk.red(err));
 });
