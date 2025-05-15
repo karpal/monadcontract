@@ -18,7 +18,7 @@ CTRL+X y enter
 Jalankan
 
 ```bash
-node deploy.js
+node deploy.mjs
 ```
 
 KaRPaL
