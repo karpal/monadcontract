@@ -4,9 +4,9 @@ const solc = require('solc');
 const { ethers } = require('ethers');
 const readline = require('readline');
 
-const DELAY_MS = 5000; // Delay 5 detik antar deploy
+const DELAY_MS = 5000; // Delay antar deploy (ms)
 
-// Compile smart contract
+// Compile Solidity
 const source = fs.readFileSync('Gmonad.sol', 'utf8');
 const input = {
     language: 'Solidity',
@@ -21,12 +21,13 @@ const input = {
         },
     },
 };
+
 const output = JSON.parse(solc.compile(JSON.stringify(input)));
 const contractFile = output.contracts['Gmonad.sol']['Gmonad'];
 const abi = contractFile.abi;
 const bytecode = contractFile.evm.bytecode.object;
 
-// Fungsi tanya user di terminal
+// Fungsi tanya terminal
 function askUser(question) {
     const rl = readline.createInterface({
         input: process.stdin,
@@ -38,7 +39,7 @@ function askUser(question) {
     }));
 }
 
-// Fungsi delay
+// Delay
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -56,7 +57,7 @@ async function main() {
     const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
     const factory = new ethers.ContractFactory(abi, bytecode, wallet);
 
-    console.log(`\n🚀 Akan mendeply ${totalContracts} kontrak satu per satu...\n`);
+    console.log(`\n🚀 Deploying ${totalContracts} contract(s) one by one...\n`);
 
     for (let i = 0; i < totalContracts; i++) {
         console.log(`🚧 Deploying contract #${i + 1}...`);
@@ -66,8 +67,10 @@ async function main() {
             from: wallet.address,
             data: "0x" + bytecode,
         });
-        const gasPrice = await provider.getGasPrice();
-        const estimatedCost = gasPrice.mul(estimatedGas);
+
+        const gasPriceHex = await provider.send("eth_gasPrice", []);
+        const gasPrice = BigInt(gasPriceHex);
+        const estimatedCost = gasPrice * BigInt(estimatedGas);
 
         const ethCost = ethers.formatEther(estimatedCost);
 
@@ -79,7 +82,6 @@ async function main() {
 
         console.log(`✅ Contract #${i + 1} deployed at: ${contract.target}\n`);
 
-        // Delay sebelum deploy berikutnya
         if (i < totalContracts - 1) {
             console.log(`⏳ Menunggu ${DELAY_MS / 1000} detik sebelum deploy berikutnya...\n`);
             await delay(DELAY_MS);
