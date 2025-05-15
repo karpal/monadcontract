@@ -71,51 +71,66 @@ function delay(ms) {
 
 // 🎯 Main deploy logic
 async function main() {
-    const userInput = await askUser(chalk.blueBright("🔢 Berapa jumlah kontrak yang ingin kamu buat? "));
-    const totalContracts = parseInt(userInput);
+    const userInput = await askUser(chalk.blueBright("🔢 Berapa jumlah kontrak yang ingin dibuat per akun? "));
+    const deployPerAccount = parseInt(userInput);
 
-    if (isNaN(totalContracts) || totalContracts <= 0) {
+    if (isNaN(deployPerAccount) || deployPerAccount <= 0) {
         console.error(chalk.red("❌ Input tidak valid. Masukkan angka lebih dari 0."));
         return;
     }
 
-    console.log(chalk.cyan(`\n🚀 Deploying ${totalContracts} contract(s) dengan ${PRIVATE_KEYS.length} akun...\n`));
+    console.log(chalk.cyan(`\n🚀 Deploy ${deployPerAccount} kontrak untuk masing-masing dari ${PRIVATE_KEYS.length} akun...\n`));
 
-    for (let i = 0; i < totalContracts; i++) {
-        const keyIndex = i % PRIVATE_KEYS.length;
-        const wallet = new ethers.Wallet(PRIVATE_KEYS[keyIndex], provider);
+    for (let i = 0; i < PRIVATE_KEYS.length; i++) {
+        const wallet = new ethers.Wallet(PRIVATE_KEYS[i], provider);
         const factory = new ethers.ContractFactory(abi, bytecode, wallet);
 
-        console.log(chalk.yellow(`🚧 [Akun ${keyIndex + 1}] Deploying contract #${i + 1} dari ${wallet.address}...`));
+        console.log(chalk.yellow(`\n========================`));
+        console.log(chalk.yellow(`🔐 Akun ${i + 1}: ${wallet.address}`));
 
-        const estimatedGas = await provider.estimateGas({
-            from: wallet.address,
-            data: "0x" + bytecode,
-        });
+        for (let j = 0; j < deployPerAccount; j++) {
+            console.log(chalk.yellow(`🚧 Deploy #${j + 1} untuk akun ${i + 1}`));
 
-        const gasPriceHex = await provider.send("eth_gasPrice", []);
-        const gasPrice = BigInt(gasPriceHex);
-        const estimatedCost = gasPrice * BigInt(estimatedGas);
-        const ethCost = ethers.formatEther(estimatedCost);
+            try {
+                const estimatedGas = await provider.estimateGas({
+                    from: wallet.address,
+                    data: "0x" + bytecode,
+                });
 
-        console.log(`   ⛽ Estimasi gas: ${chalk.magenta(estimatedGas)} @ ${chalk.magenta(ethers.formatUnits(gasPrice, "gwei"))} gwei`);
-        console.log(`   💰 Estimasi biaya: ~${chalk.green(ethCost)} MON`);
+                const gasPriceHex = await provider.send("eth_gasPrice", []);
+                const gasPrice = BigInt(gasPriceHex);
+                const estimatedCost = gasPrice * BigInt(estimatedGas);
+                const ethCost = ethers.formatEther(estimatedCost);
 
-        const contract = await factory.deploy();
-        await contract.waitForDeployment();
+                console.log(`   ⛽ Estimasi gas: ${chalk.magenta(estimatedGas)} @ ${chalk.magenta(ethers.formatUnits(gasPrice, "gwei"))} gwei`);
+                console.log(`   💰 Estimasi biaya: ~${chalk.green(ethCost)} MON`);
 
-        console.log(chalk.green(`✅ Contract #${i + 1} berhasil dideploy di: ${contract.target}\n`));
+                const contract = await factory.deploy();
+                await contract.waitForDeployment();
 
-        if (i < totalContracts - 1) {
-            console.log(chalk.gray(`⏳ Menunggu ${DELAY_MS / 1000} detik sebelum deploy berikutnya...\n`));
+                console.log(chalk.green(`✅ Contract berhasil dideploy di: ${contract.target}\n`));
+
+                // Opsional: Simpan ke file
+                fs.appendFileSync('deployed_contracts.txt', `${wallet.address} => ${contract.target}\n`);
+            } catch (err) {
+                console.error(chalk.red(`❌ Deploy gagal untuk akun ${wallet.address}: ${err.message}\n`));
+            }
+
+            if (j < deployPerAccount - 1) {
+                console.log(chalk.gray(`⏳ Menunggu ${DELAY_MS / 1000} detik sebelum deploy berikutnya...\n`));
+                await delay(DELAY_MS);
+            }
+        }
+
+        if (i < PRIVATE_KEYS.length - 1) {
+            console.log(chalk.gray(`⏳ Selesai akun ${i + 1}, lanjut ke akun berikutnya dalam ${DELAY_MS / 1000} detik...\n`));
             await delay(DELAY_MS);
         }
     }
 
-    console.log(chalk.black.bgGreen("🎉 Semua kontrak berhasil dideploy!"));
+    console.log(chalk.black.bgGreen("🎉 Semua kontrak selesai dideploy untuk semua akun!"));
 }
 
-// 🎨 Banner + Jalankan
 figlet.text('karpal', { horizontalLayout: 'default' }, function (err, data) {
     if (err) {
         console.log('❌ Error saat menampilkan figlet:');
