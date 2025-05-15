@@ -8,9 +8,30 @@ import figlet from 'figlet';
 
 dotenv.config();
 
-const DELAY_MS = 5000; // Delay antar deploy (ms)
+const DELAY_MS = 5000;
+const PRIVATE_KEYS_PATH = './private_keys.txt';
 
-// Compile Solidity
+// 🚀 Baca private key dari file .txt
+let PRIVATE_KEYS = [];
+try {
+    const rawKeys = fs.readFileSync(PRIVATE_KEYS_PATH, 'utf8');
+    PRIVATE_KEYS = rawKeys
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+} catch (err) {
+    console.error(chalk.red(`❌ Gagal membaca file ${PRIVATE_KEYS_PATH}: ${err.message}`));
+    process.exit(1);
+}
+
+if (PRIVATE_KEYS.length === 0) {
+    console.error(chalk.red("❌ Tidak ada private key ditemukan dalam file."));
+    process.exit(1);
+}
+
+const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+
+// 📦 Compile Solidity contract
 const source = fs.readFileSync('Gmonad.sol', 'utf8');
 const input = {
     language: 'Solidity',
@@ -31,7 +52,7 @@ const contractFile = output.contracts['Gmonad.sol']['Gmonad'];
 const abi = contractFile.abi;
 const bytecode = contractFile.evm.bytecode.object;
 
-// Fungsi tanya terminal
+// 📟 Prompt input
 function askUser(question) {
     const rl = readline.createInterface({
         input: process.stdin,
@@ -43,11 +64,12 @@ function askUser(question) {
     }));
 }
 
-// Delay
+// 💤 Delay
 function delay(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// 🎯 Main deploy logic
 async function main() {
     const userInput = await askUser(chalk.blueBright("🔢 Berapa jumlah kontrak yang ingin kamu buat? "));
     const totalContracts = parseInt(userInput);
@@ -57,14 +79,14 @@ async function main() {
         return;
     }
 
-    const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-    const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-    const factory = new ethers.ContractFactory(abi, bytecode, wallet);
-
-    console.log(chalk.cyan(`\n🚀 Deploying ${totalContracts} contract(s) satu per satu...\n`));
+    console.log(chalk.cyan(`\n🚀 Deploying ${totalContracts} contract(s) dengan ${PRIVATE_KEYS.length} akun...\n`));
 
     for (let i = 0; i < totalContracts; i++) {
-        console.log(chalk.yellow(`🚧 Deploying contract #${i + 1}...`));
+        const keyIndex = i % PRIVATE_KEYS.length;
+        const wallet = new ethers.Wallet(PRIVATE_KEYS[keyIndex], provider);
+        const factory = new ethers.ContractFactory(abi, bytecode, wallet);
+
+        console.log(chalk.yellow(`🚧 [Akun ${keyIndex + 1}] Deploying contract #${i + 1} dari ${wallet.address}...`));
 
         const estimatedGas = await provider.estimateGas({
             from: wallet.address,
@@ -82,7 +104,7 @@ async function main() {
         const contract = await factory.deploy();
         await contract.waitForDeployment();
 
-        console.log(chalk.green(`✅ Contract #${i + 1} deployed at: ${contract.target}\n`));
+        console.log(chalk.green(`✅ Contract #${i + 1} berhasil dideploy di: ${contract.target}\n`));
 
         if (i < totalContracts - 1) {
             console.log(chalk.gray(`⏳ Menunggu ${DELAY_MS / 1000} detik sebelum deploy berikutnya...\n`));
@@ -93,6 +115,7 @@ async function main() {
     console.log(chalk.black.bgGreen("🎉 Semua kontrak berhasil dideploy!"));
 }
 
+// 🎨 Banner + Jalankan
 figlet.text('karpal', { horizontalLayout: 'default' }, function (err, data) {
     if (err) {
         console.log('❌ Error saat menampilkan figlet:');
