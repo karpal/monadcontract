@@ -89,9 +89,9 @@ async function main() {
         }
     }
 
-    console.log(chalk.bgGreen.black("🎉 Semua kontrak berhasil dideploy!"));
+    console.log(chalk.black.bgGreen("🎉 Semua kontrak berhasil dideploy!"));
 }
 
 main().catch((err) => {
-    console.error(chalk.bgRed.white("❌ Deployment gagal:"), chalk.red(err));
+    console.error(chalk.white.bgRed("❌ Deployment gagal:"), chalk.red(err));
 });
