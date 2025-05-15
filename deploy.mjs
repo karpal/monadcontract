@@ -4,6 +4,7 @@ import solc from 'solc';
 import { ethers } from 'ethers';
 import readline from 'readline';
 import chalk from 'chalk';
+import figlet from 'figlet';
 
 dotenv.config();
 
@@ -92,6 +93,14 @@ async function main() {
     console.log(chalk.black.bgGreen("🎉 Semua kontrak berhasil dideploy!"));
 }
 
-main().catch((err) => {
-    console.error(chalk.white.bgRed("❌ Deployment gagal:"), chalk.red(err));
+figlet.text('karpal', { horizontalLayout: 'default' }, function (err, data) {
+    if (err) {
+        console.log('❌ Error saat menampilkan figlet:');
+        console.dir(err);
+        return;
+    }
+    console.log(chalk.green(data));
+    main().catch((err) => {
+        console.error(chalk.white.bgRed("❌ Deployment gagal:"), chalk.red(err));
+    });
 });
