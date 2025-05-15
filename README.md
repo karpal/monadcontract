@@ -7,7 +7,7 @@ cd monadcontract
 ```
 ```bash
 npm init -y
-npm install ethers solc dotenv readline chalk
+npm install ethers solc dotenv readline chalk figlet
 ```
 masukkan PK
 ```bash
