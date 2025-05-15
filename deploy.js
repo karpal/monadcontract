@@ -2,15 +2,16 @@ require('dotenv').config();
 const fs = require('fs');
 const solc = require('solc');
 const { ethers } = require('ethers');
+const readline = require('readline');
 
+const DELAY_MS = 5000; // Delay 5 detik antar deploy
+
+// Compile smart contract
 const source = fs.readFileSync('Gmonad.sol', 'utf8');
-
 const input = {
     language: 'Solidity',
     sources: {
-        'Gmonad.sol': {
-            content: source,
-        },
+        'Gmonad.sol': { content: source },
     },
     settings: {
         outputSelection: {
@@ -20,25 +21,74 @@ const input = {
         },
     },
 };
-
 const output = JSON.parse(solc.compile(JSON.stringify(input)));
 const contractFile = output.contracts['Gmonad.sol']['Gmonad'];
-
 const abi = contractFile.abi;
 const bytecode = contractFile.evm.bytecode.object;
 
+// Fungsi tanya user di terminal
+function askUser(question) {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+    return new Promise(resolve => rl.question(question, answer => {
+        rl.close();
+        resolve(answer);
+    }));
+}
+
+// Fungsi delay
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function main() {
+    const userInput = await askUser("🔢 Berapa jumlah kontrak yang ingin kamu deploy? ");
+    const totalContracts = parseInt(userInput);
+
+    if (isNaN(totalContracts) || totalContracts <= 0) {
+        console.error("❌ Input tidak valid. Masukkan angka lebih dari 0.");
+        return;
+    }
+
     const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
     const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-
-    console.log("Deploying contract...");
-
     const factory = new ethers.ContractFactory(abi, bytecode, wallet);
-    const contract = await factory.deploy();
 
-    console.log("Contract deployed at address:", contract.target);
+    console.log(`\n🚀 Akan mendeply ${totalContracts} kontrak satu per satu...\n`);
+
+    for (let i = 0; i < totalContracts; i++) {
+        console.log(`🚧 Deploying contract #${i + 1}...`);
+
+        // Estimasi gas
+        const estimatedGas = await provider.estimateGas({
+            from: wallet.address,
+            data: "0x" + bytecode,
+        });
+        const gasPrice = await provider.getGasPrice();
+        const estimatedCost = gasPrice.mul(estimatedGas);
+
+        const ethCost = ethers.formatEther(estimatedCost);
+
+        console.log(`   ⛽ Estimasi gas: ${estimatedGas} @ ${ethers.formatUnits(gasPrice, "gwei")} gwei`);
+        console.log(`   💰 Estimasi biaya: ~${ethCost} ETH`);
+
+        const contract = await factory.deploy();
+        await contract.waitForDeployment();
+
+        console.log(`✅ Contract #${i + 1} deployed at: ${contract.target}\n`);
+
+        // Delay sebelum deploy berikutnya
+        if (i < totalContracts - 1) {
+            console.log(`⏳ Menunggu ${DELAY_MS / 1000} detik sebelum deploy berikutnya...\n`);
+            await delay(DELAY_MS);
+        }
+    }
+
+    console.log("🎉 Semua kontrak berhasil dideploy!");
 }
 
 main().catch((err) => {
-    console.error("Deployment failed:", err);
+    console.error("❌ Deployment gagal:", err);
 });
